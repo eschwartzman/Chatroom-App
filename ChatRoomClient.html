@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style type="TEXT/css">
+  body {
+    color: black; 
+    background: DarkSeaGreen;
+    font:15px/20px Georgia;
+  }
+  div.chat{
+    font:18px/18px Lucida;
+    text-align: center;
+    vertical-align: center;
+    color: IndianRed;
+    float: center;
+  }
+  div.info{
+    color: DarkSlateBlue;
+  }
+  h1{
+    color: Bisque;
+    font:50px/50px Lucida
+    text-align: center;
+  }
+  div.buttons{
+    font:18px/18px Lucida;
+    width: 100;
+  }
+  </style>
+
+  <title>Chat</title> 
+  <h1>CSE330 Chat</h1>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type ="text/javascript">
+  var socketio = io.connect("54.164.138.11:3456");
+  var name;
+
+//on connection to server, ask for user's name
+socketio.on('connect', function(){
+  name = prompt("What's your name?");
+  socketio.emit('adduser', name);
+});
+
+//print out the message
+socketio.on("message_to_client",function(data) {
+  document.getElementById("chatlog").appendChild(document.createElement("hr"));
+  document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
+});
+
+//Tell users if others have joined a room / user activity
+socketio.on("alert_join", function(data){
+  var t = document.createElement("tr");
+  t.innerHTML =data['message'];
+  document.getElementById("t4").appendChild(t);
+});
+
+//Display available public rooms
+socketio.on("displayRooms", function(data){
+  document.getElementById("t1").innerHTML ="Available Rooms:";
+  for (var key in data){
+    var t = document.createElement("tr");
+    t.innerHTML =key;
+    document.getElementById("t1").appendChild(t);
+  }
+});
+
+//display the current room the user is in
+socketio.on("currentRooms", function(data){
+  document.getElementById("t2").innerHTML ="Current Room:";
+  var t = document.createElement("tr");
+  t.innerHTML =data;
+  document.getElementById("t2").appendChild(t);
+});
+
+//display the current users on the site
+socketio.on("currentUsers", function(data){
+  document.getElementById("t3").innerHTML ="Current Users on Website:";
+  for (var key in data) {
+   var t = document.createElement("tr");
+   t.innerHTML =key;
+   document.getElementById("t3").appendChild(t);
+ }
+});
+
+//display the private rooms available
+socketio.on("privateRoomsAval", function(data){
+  document.getElementById("t5").innerHTML ="Rooms that need a password to join:";
+  for (var key in data) {
+   var t = document.createElement("tr");
+   t.innerHTML =key;
+   document.getElementById("t5").appendChild(t);
+ }
+});
+
+//send message function
+function sendMessage(){
+ var msg = document.getElementById("message_input").value;
+ socketio.emit("message_to_server", {message:msg});
+ document.getElementById("message_input").value ="";
+}
+
+//make public room function
+function makeRoom(){
+ var rm = document.getElementById("room_input").value;
+ socketio.emit('create', rm);
+ document.getElementById("room_input").value ="";
+}
+
+//join public room function
+function joinRoom(){
+ var rm = document.getElementById("room_input2").value;
+ socketio.emit('create2', rm);
+ document.getElementById("room_input2").value ="";
+}
+
+//make private room function
+function makePrivateRoom(){
+ var prm = document.getElementById("private_room_input").value;
+ var p = prompt("password?");
+ p;
+ socketio.emit('pm', prm, p);
+ document.getElementById("private_room_input").value ="";
+}
+
+//join private room function
+function joinPrivateRoom(){
+ var prm2 = document.getElementById("private_room_input2").value;
+ var p2 = prompt("password?");
+ socketio.emit('pm2', prm2, p2);
+ document.getElementById("private_room_input2").value ="";
+}
+
+//private messaging function
+function e_Whisper(){
+ var w_user = document.getElementById("whisper_user").value;
+ var w_message = document.getElementById("whisper_message").value;
+ socketio.emit('whisp', w_user, w_message);
+ document.getElementById("whisper_user").value ="";
+ document.getElementById("whisper_message").value ="";
+}
+
+//temp kick user function
+function kickUserTemp(){
+ var user_kick = document.getElementById("user_to_kick").value;
+ socketio.emit('kick_temp', user_kick);
+ document.getElementById("user_to_kick").value ="";
+}
+
+//helper for temp kick function
+socketio.on('Kick', function(user_kick){
+  if (user_kick === name) {
+    socketio.emit('KickReal');
+  }  
+});
+
+//perm kick function
+function kickUserPerm(){
+  var usr_to_kick = document.getElementById("user_to_kickP").value;
+  socketio.emit('kickPerm', usr_to_kick);
+  document.getElementById("user_to_kickP").value ="";
+}
+
+//helper for perm kick function
+socketio.on('KickP', function(user_kickP){
+  if (user_kickP === name) {
+    socketio.emit('KickRealP'); 
+  }  
+});
+
+//display passwords for private rooms user has created
+socketio.on("get_room", function(data){
+  document.getElementById("t6").innerHTML ="Private Rooms You Have Made:";
+  var t = document.createElement("tr");
+  t.innerHTML =data;
+  document.getElementById("t6").appendChild(t);
+});
+
+</script>
+<!-- </head> -->
+<!-- <body> -->
+<input type="text" id="message_input" placeholder="Type Here!"/>
+<button onclick="sendMessage()">Send Message!</button><br><br>
+<input type="text" id="room_input" placeholder= "Public Room Name"/>
+<button onclick="makeRoom()">Create Public Room</button>
+<input type="text" id="room_input2" placeholder= "Public Room Name"/>
+<button onclick="joinRoom()">Join Public Room</button><br><br>
+<input type="text" id="private_room_input" placeholder= "Private Room Name"/>
+<button onclick="makePrivateRoom()">Create Private Room</button>
+<input type="text" id="private_room_input2" placeholder= "Private Room Name"/>
+<button onclick="joinPrivateRoom()">Join Private Room</button><br><br>
+<input type="text" id="user_to_kick" placeholder= "Name of User to kick"/>
+<button onclick="kickUserTemp()">Kick Temporarily</button>
+<input type="text" id="user_to_kickP" placeholder= "Name of User to kick"/>
+<button onclick="kickUserPerm()">Kick the User Permeantly</button><br><br>
+<input type="text" id="whisper_user" placeholder= "User to Whisper to"/>
+<input type="text" id="whisper_message" placeholder= "Message to Whisper"/>
+<button onclick="e_Whisper()"> Whisper </button><br>
+<div class ="buttons">
+  <div id ="availableRooms" class ="info">
+    <table id="t1">
+    </table>
+  </div><br>
+  <div id ="currentRooms" class ="info">
+    <table id="t2">
+    </table>
+  </div><br>
+  <div id ="currentUsers" class ="info">
+    <table id="t3">
+    </table>
+  </div><br>
+  <div id="alertU" class ="info">User Activity
+    <table id="t4">
+    </table>
+  </div><br>
+  <div id="avalProoms" class ="info">
+    <table id="t5">
+    </table>
+  </div><br>
+  <div id="proom_pass" class ="info">
+    <table id="t6">
+    </table>
+  </div><br>
+</div>
+<div id="chatlog" class ="chat"></div>
+</body>
+</html>
